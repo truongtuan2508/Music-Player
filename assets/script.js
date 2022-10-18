@@ -1,33 +1,50 @@
 const $ = document.querySelector.bind(document);
 const $$ = document.querySelectorAll.bind(document);
-const cd = $(".cd");
 
+const PLAYER_STORAGE_KEY = "MS_PLAYER";
+
+const cd = $(".cd");
+const heading = $("header h2");
+const cdThumb = $(".cd-thumb");
+const audio = $("#audio");
+const playBtn = $(".btn-toggle-play");
+const player = $(".player");
+const progress = $("#progress");
+const nextBtn = $(".btn-next");
+const prevBtn = $(".btn-prev");
+const randomBtn = $(".btn-random");
+const repeatBtn = $(".btn-repeat");
+const playlist = $(".playlist");
 const app = {
     currentIndex: 0,
+    isPlaying: false,
+    isRandom: false,
+    isRepeat: false,
+    config: JSON.parse(localStorage.getItem(PLAYER_STORAGE_KEY)) || {},
     songs: [
         {
-            name: "Click Pow Get Down",
-            singer: "Raftaar x Fortnite",
-            path: "https://mp3.vlcmusic.com/download.php?track_id=34737&format=320",
-            image: "https://i.ytimg.com/vi/jTLhQf5KJSc/maxresdefault.jpg",
+            name: "Vicetone",
+            singer: "Nevada",
+            path: "https://vnso-zn-15-tf-mp3-s1-zmp3.zmdcdn.me/1d9de0bd79f990a7c9e8/1660985765828162804?authen=exp=1666254498~acl=/1d9de0bd79f990a7c9e8/*~hmac=f5b654862ef6552405be489268fa1b5b&fs=MTY2NjA4MTY5Nzk4Nnx3ZWJWNnwxMDY2MDg2NjQyfDExNi4xMDYdUngMjA2LjE4MQ&filename=Vicetone-Nevada-Remix.mp3",
+            image: "https://i1.sndcdn.com/artworks-000174788935-d1hrl9-t500x500.jpg",
         },
         {
-            name: "Tu Phir Se Aana",
-            singer: "Raftaar x Salim Merchant x Karma",
-            path: "https://mp3.vlcmusic.com/download.php?track_id=34213&format=320",
-            image: "https://1.bp.blogspot.com/-kX21dGUuTdM/X85ij1SBeEI/AAAAAAAAKK4/feboCtDKkls19cZw3glZWRdJ6J8alCm-gCNcBGAsYHQ/s16000/Tu%2BAana%2BPhir%2BSe%2BRap%2BSong%2BLyrics%2BBy%2BRaftaar.jpg",
+            name: "Chạy Về Nơi Phía Anh",
+            singer: "Khắc Việt",
+            path: "https://vnso-zn-15-tf-mp3-s1-zmp3.zmdcdn.me/30ebf1a99ce875b62cf9/1207873609872211285?authen=exp=1666261101~acl=/30ebf1a99ce875b62cf9/*~hmac=31fd029172a1eb52afdf94022876a1ec&fs=MTY2NjA4ODMwMTMyNnx3ZWJWNnwxMDY2MDg2NjQyfDExNi4xMDYdUngMjA2LjE4MQ&filename=Chay-Ve-Noi-Phia-Anh-Khac-Viet.mp3",
+            image: "https://i.ytimg.com/vi/RaoBKCKIDAI/maxresdefault.jpg",
         },
         {
-            name: "Naachne Ka Shaunq",
+            name: "Bước Qua Nhau",
             singer: "Raftaar x Brobha V",
-            path: "https://mp3.filmysongs.in/download.php?id=Naachne Ka Shaunq Raftaar Ft Brodha V Mp3 Hindi Song Filmysongs.co.mp3",
-            image: "https://i.ytimg.com/vi/QvswgfLDuPg/maxresdefault.jpg",
+            path: "https://tainhachay.biz/download-mp3/EdENCgJm9dAa/mp3",
+            image: "https://avatar-ex-swe.nixcdn.com/song/share/2021/11/19/b/e/5/0/1637317185220.jpg",
         },
         {
-            name: "Mantoiyat",
-            singer: "Raftaar x Nawazuddin Siddiqui",
-            path: "https://mp3.vlcmusic.com/download.php?track_id=14448&format=320",
-            image: "https://a10.gaanacdn.com/images/song/39/24225939/crop_480x480_1536749130.jpg",
+            name: "Chạy Về Khóc Với Anh",
+            singer: "ERIK",
+            path: "https://vnso-zn-5-tf-mp3-s1-zmp3.zmdcdn.me/baa2ed6e9d2f74712d3e/7034223956028953907?authen=exp=1666261269~acl=/baa2ed6e9d2f74712d3e/*~hmac=42a9491bd1cf920a8ef4349b4063062f&fs=MTY2NjA4ODQ2OTA5M3x3ZWJWNnwxMDY2MDg2NjQyfDExNi4xMDYdUngMjA2LjE4MQ&filename=Chay-Ve-Khoc-Voi-Anh-ERIK.mp3",
+            image: "https://dj24h.com/wp-content/uploads/2022/03/chay-ve-khoc-voi-anh.jpg",
         },
         {
             name: "Aage Chal",
@@ -48,10 +65,14 @@ const app = {
             image: "https://a10.gaanacdn.com/gn_img/albums/YoEWlabzXB/oEWlj5gYKz/size_xxl_1586752323.webp",
         },
     ],
+    setConfig: function (key, value) {
+        this.config[key] = value;
+        localStorage.setItem(PLAYER_STORAGE_KEY, JSON.stringify(this.config));
+    },
     render: function () {
-        const htmls = this.songs.map((song) => {
+        const htmls = this.songs.map((song, index) => {
             return `
-                        <div class="song">
+                        <div class="song ${index === this.currentIndex ? "active" : ""}" data-index="${index}">
                             <div class="thumb" style="background-image: url('${song.image}')"></div>
                             <div class="body">
                                 <h3 class="title">${song.name}</h3>
@@ -63,7 +84,7 @@ const app = {
                         </div>
                         `;
         });
-        $(".playlist").innerHTML = htmls.join("");
+        playlist.innerHTML = htmls.join("");
     },
 
     defineProperties: function () {
@@ -75,19 +96,166 @@ const app = {
     },
 
     handleEvents: function () {
+        const _this = this;
         const cdWidth = cd.offsetWidth;
 
-        // Xử lý scroll
+        //Handle CD spins / stops
+        const cdThumbAnimate = cdThumb.animate([{ transform: "rotate(360deg)" }], {
+            duration: 10000, // 10 seconds
+            iterations: Infinity,
+        });
+        cdThumbAnimate.pause();
+
+        // Handles CD enlargement / reduction
         document.onscroll = function () {
             const scrollTop = window.scrollY || document.documentElement.scrollTop;
             const newCdWidth = cdWidth - scrollTop;
             cd.style.width = newCdWidth > 0 ? newCdWidth + "px" : 0;
             cd.style.opacity = newCdWidth / cdWidth;
         };
+
+        // Handle CD spins / stops
+        playBtn.onclick = function () {
+            if (_this.isPlaying) {
+                audio.pause();
+            } else {
+                audio.play();
+            }
+        };
+
+        //When the song is played
+        audio.onplay = function () {
+            _this.isPlaying = true;
+            player.classList.add("playing");
+            cdThumbAnimate.play();
+        };
+        // When the song is paused
+        audio.onpause = function () {
+            _this.isPlaying = false;
+            player.classList.remove("playing");
+            cdThumbAnimate.pause();
+        };
+
+        // When the song progress changes
+        audio.ontimeupdate = function () {
+            if (audio.duration) {
+                const progressPercent = Math.floor((audio.currentTime / audio.duration) * 100);
+                progress.value = progressPercent;
+            }
+        };
+
+        // Handling when seek
+        progress.onchange = function (e) {
+            const seekTime = (audio.duration / 100) * e.target.value;
+            audio.currentTime = seekTime;
+        };
+        // When next song
+        nextBtn.onclick = function () {
+            if (_this.isRandom) {
+                _this.playRandomSong();
+            } else {
+                _this.nextSong();
+            }
+            audio.play();
+            _this.render();
+            _this.scrollToActiveSong();
+        };
+        // When prev song
+        prevBtn.onclick = function () {
+            if (_this.isRandom) {
+                _this.playRandomSong();
+            } else {
+                _this.prevSong();
+            }
+            audio.play();
+            _this.render();
+            _this.scrollToActiveSong();
+        };
+
+        // Handling on / off random song
+        randomBtn.onclick = function (e) {
+            _this.isRandom = !_this.isRandom;
+            _this.setConfig("isRandom", _this.isRandom);
+            randomBtn.classList.toggle("active", _this.isRandom);
+        };
+        // Handle next song when audio ended
+        audio.onended = function () {
+            if (_this.isRepeat) {
+                audio.play();
+            } else {
+                nextBtn.click();
+            }
+        };
+
+        // Single-parallel repeat processing
+        repeatBtn.onclick = function (e) {
+            _this.isRepeat = !_this.isRepeat;
+            _this.setConfig("isRepeat", _this.isRepeat);
+            repeatBtn.classList.toggle("active", _this.isRepeat);
+        };
+
+        // Listen to playlist clicks
+        playlist.onclick = function (e) {
+            const songNode = e.target.closest(".song:not(.active)");
+            if (songNode || e.target.closest(".option")) {
+                // Handle song click
+                if (songNode) {
+                    _this.currentIndex = Number(songNode.dataset.index);
+                    _this.loadCurrentSong();
+                    _this.render();
+                    audio.play();
+                }
+                // Handle option click
+                if (e.target.closest(".option")) {
+                }
+            }
+        };
     },
-    loadCurrentSong: function () {},
+    scrollToActiveSong: function () {
+        setTimeout(() => {
+            $(".song.active").scrollIntoView({
+                behavior: "smooth",
+                block: "nearest",
+            });
+        }, 300);
+    },
+
+    loadConfig: function () {
+        this.isRandom = this.config.isRandom;
+        this.isRepeat = this.config.isRepeat;
+    },
+
+    loadCurrentSong: function () {
+        heading.textContent = this.currentSong.name;
+        cdThumb.style.backgroundImage = `url('${this.currentSong.image}')`;
+        audio.src = this.currentSong.path;
+    },
+    nextSong: function () {
+        this.currentIndex++;
+        if (this.currentIndex >= this.songs.length) {
+            this.currentIndex = 0;
+        }
+        this.loadCurrentSong();
+    },
+    prevSong: function () {
+        this.currentIndex--;
+        if (this.currentIndex < 0) {
+            this.currentIndex = this.songs.length - 1;
+        }
+        this.loadCurrentSong();
+    },
+    playRandomSong: function () {
+        let newIndex;
+        do {
+            newIndex = Math.floor(Math.random() * this.songs.length);
+        } while (newIndex === this.currentIndex);
+        this.currentIndex = newIndex;
+        this.loadCurrentSong();
+    },
 
     start: function () {
+        // Assign configuration from config to application
+        this.loadConfig();
         // Defines properties for the object
         this.defineProperties();
 
@@ -99,6 +267,10 @@ const app = {
 
         //Render playlist
         this.render();
+
+        // Display the initial state of the repeat & random button
+        randomBtn.classList.toggle("active", this.isRandom);
+        repeatBtn.classList.toggle("active", this.isRepeat);
     },
 };
 app.start();
